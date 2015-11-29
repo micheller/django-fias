@@ -6,7 +6,7 @@ from django.db.models import Min
 from fias.config import TABLES
 from fias.importer.source import *
 from fias.importer.table import BadTableError
-from fias.importer.loader import TableLoader, TableUpdater
+from fias.importer.loader import TableLoader, TableUpdater, NewTableUpdater
 from fias.importer.log import log
 from fias.models import Status, Version
 
@@ -32,7 +32,7 @@ def get_tablelist(path, data_format):
             tablelist = RemoteArchiveTableList(src=path)
 
         else:
-            raise TableListLoadingError('Path `{0}` is not valid table list source')
+            raise TableListLoadingError('Path `{0}` is not valid table list source'.format(path))
 
     return tablelist
 
@@ -82,9 +82,9 @@ def update_data(path=None, skip=False, data_format='xml', limit=1000, tables=Non
     for tbl in get_table_names(tables):
         st = Status.objects.get(table=tbl)
 
-        if st.ver.ver <= tablelist.version.ver:
-            log.info('Update of the table `{0}` is not needed. Skipping...'.format(tbl))
-            continue
+        #if st.ver.ver <= tablelist.version.ver:
+        #    log.info('Update of the table `{0}` is not needed. Skipping...'.format(tbl))
+        #    continue
 
         log.info('Updating table `{0}` from {1} to {2}...'.format(tbl,
                                                                   st.ver.ver,
@@ -102,6 +102,35 @@ def update_data(path=None, skip=False, data_format='xml', limit=1000, tables=Non
 
         st.ver = tablelist.version
         st.save()
+
+
+def new_update_data(path=None, skip=False, data_format='xml', limit=1000, tables=None):
+    tablelist = get_tablelist(path=path, data_format=data_format)
+
+    for tbl in get_table_names(tables):
+        st = Status.objects.get(table=tbl)
+
+        #if st.ver.ver <= tablelist.version.ver:
+        #    log.info('Update of the table `{0}` is not needed. Skipping...'.format(tbl))
+        #    continue
+
+        log.info('Updating table `{0}` from {1} to {2}...'.format(tbl,
+                                                                  st.ver.ver,
+                                                                  tablelist.version))
+
+        for table in tablelist.tables[tbl]:
+            loader = NewTableUpdater(limit=limit)
+            try:
+                loader.load(tablelist=tablelist, table=table)
+            except BadTableError as e:
+                if skip:
+                    log.error(str(e))
+                else:
+                    raise
+
+        st.ver = tablelist.version
+        st.save()
+
 
 
 def auto_update_data(skip=False, data_format='xml', limit=1000):
