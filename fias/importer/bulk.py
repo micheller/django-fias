@@ -38,7 +38,19 @@ class BulkCreate(object):
         return dict((k.lower(), v) for k, v in d.iteritems())
 
     def _create(self):
-        self.model.objects.bulk_create(self.objects)
+        failed = True
+        while failed:
+            try:
+                self.model.objects.bulk_create(self.objects)
+                failed = False
+            except db.utils.IntegrityError as e:
+                reguid = re.compile('=\(([0-9a-f-]*)', re.MULTILINE)
+                badguid = reguid.search(e.message).group(1)
+                for i, _ in enumerate(self.objects):
+                    if self.objects[i].houseguid == badguid:
+                        self.objects.pop(i)
+                        break
+
         self.objects = []
         if settings.DEBUG:
             db.reset_queries()
