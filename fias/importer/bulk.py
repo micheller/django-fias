@@ -2,6 +2,7 @@
 from __future__ import unicode_literals, absolute_import
 
 import datetime
+import re
 from django.conf import settings
 from django import db
 from fias.importer.log import log
