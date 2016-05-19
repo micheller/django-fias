@@ -12,6 +12,7 @@ class SphinxItConfig(BaseSearchConfig):
     DEBUG = settings.DEBUG
     WITH_STATUS = False
     WITH_META = False
+    SQL_ENGINE = getattr(settings, 'FIAS_SQL_ENGINE', 'mysqldb')
     SEARCHD_CONNECTION = getattr(settings, 'FIAS_SEARCHD_CONNECTION', {
         'host': '127.0.0.1',
         'port': 9306,
